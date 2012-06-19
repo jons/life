@@ -33,3 +33,19 @@ always be less than n, and it will always come from the same neighbors, so a
 lifeform cannot move in one general direction (downward, in this case).</p>
 
 <p>this is the interesting part: to remove the bias.</p>
+
+
+hypothesis a
+------------
+
+<p>the program should be read not per cell, but from the grid in its entirety.</p>
+
+<p>beginning with the top-most, left-most live cell, and ending with the bottom-
+most, right-most live cell, read all bits in the demarcated sub-grid. ignore the
+first marker cell because it is always 1. either ignore the last cell, or perhaps
+pad out the program with zeroes in some fashion.</p>
+
+<p>interpret the state as a sequence of rules, one after another, possibly of a
+more expressive structure than the currently designed. apply a rule to each cell,
+including the dead cells outside where the program was read from (that point is
+important), by treating the rule set as a circular queue.</p>
