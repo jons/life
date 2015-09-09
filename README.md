@@ -3,7 +3,11 @@ life
 
 <p>the self-programming game of life. or <i>splife</i>.</p>
 
-<p>in conway's game of life, the rule set for each cell is fixed.</p>
+<p>in conway's game of life, the rule set for each cell is fixed:</p>
+<ol><li>any live cell with fewer than two live neighbours dies, as if caused by under-population.</li>
+<li>any live cell with two or three live neighbours lives on to the next generation.</li>
+<li>any live cell with more than three live neighbours dies, as if by overcrowding.</li>
+<li>any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.</li></ol>
 
 <p>in variations on conway's game, the rule set is parameterized.</p>
 
