@@ -1,4 +1,5 @@
 /**
+ * self-programming life
  */
 #ifndef LIFE_H
 #define LIFE_H
@@ -16,8 +17,16 @@ typedef struct ofst ofst_t;
 
 struct grid
 {
-  uint32_t d;
-  uint8_t *m;
+  struct
+  {
+    uint8_t t;  //  top
+    uint8_t b;  //  bottom
+    uint8_t l;  //  left
+    uint8_t r;  //  right
+  } e;          // extents of live cells
+  uint32_t d;   // dimension of the grid
+  uint32_t i;   // current iteration
+  uint8_t *m;   // grid memory
 };
 
 struct ofst
@@ -30,28 +39,32 @@ union rule
 {
   uint8_t u8;
   struct {
-    uint8_t f   : 1;
-    uint8_t op  : 2;
-    uint8_t x   : 3;
-    uint8_t z   : 2; // not used
+    uint8_t f   : 1;  // alive/dead register
+    uint8_t op  : 2;  // opcode (see OP_* values)
+    uint8_t x   : 3;  // operand
+    uint8_t z   : 2;  // not used
   } bm;
 };
 
 struct page
 {
-  rule_t  r;
-  uint8_t n;
+  rule_t  r; // local rule
+  uint8_t n; // neighbor count at locus
 };
 
 
-void wcell(grid_t *g, uint32_t x, uint32_t y, uint8_t v);
+void wcell (grid_t *g, uint32_t x, uint32_t y, uint8_t v);
 
-uint8_t rcell(grid_t *g, uint32_t x, uint32_t y);
+uint8_t rcell (grid_t *g, uint32_t x, uint32_t y);
 
-void info(page_t *p, grid_t *g, uint32_t x, uint32_t y);
+void info (page_t *p, grid_t *g, uint32_t x, uint32_t y);
 
-void next_step(grid_t *n, grid_t *g, uint32_t x, uint32_t y);
+void next_step (grid_t *n, grid_t *g, uint32_t x, uint32_t y);
 
-void next_grid(grid_t *n, grid_t *g);
+void next_grid (grid_t *n, grid_t *g);
+
+int init_grid (grid_t *g, uint32_t d);
+
+void free_grid (grid_t *g);
 
 #endif

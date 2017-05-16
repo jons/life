@@ -32,21 +32,26 @@ int wait()
 int main (int argc, char **argv)
 {
   int x;
-  grid_t a, b, *v, *w;   
+  grid_t a, b, *v, *w;
 
-  memset(&a, 0, sizeof(grid_t));
-  memset(&b, 0, sizeof(grid_t));
-  a.d = b.d = SZ;
-  a.m = malloc(SZ*SZ);
-  b.m = malloc(SZ*SZ);
-  memset(a.m, 0, (SZ*SZ));
-  memset(b.m, 0, (SZ*SZ));
+  init_grid(&a, SZ);
+  init_grid(&b, SZ);
 
-  // LIVE, DAMN YOU
-  a.m[5 + 11 * 5] = 1;
-  a.m[5 + 11 * 6] = 1;
-  a.m[6 + 11 * 6] = 1;
+  // LIVE! LIVE, DAMN YOU
+  wcell(&a, 0, 0, 1);
+  wcell(&a, 0, 1, 1);
+  wcell(&a, 1, 0, 1);
+  wcell(&a, 2, 0, 1);
+  wcell(&a, 4, 4, 1);
+  wcell(&a, 5, 5, 1);
+  wcell(&a, 5, 6, 1);
+  wcell(&a, 6, 6, 1);
+  wcell(&a, 8, 6, 1);
+  wcell(&a, 6, 10, 1);
+  wcell(&a, 7, 10, 1);
 
+
+  // flip-flop next/current grid
   v = &a; w = &b; x = 0;
   for (;;) {
     draw(v);
@@ -59,7 +64,7 @@ int main (int argc, char **argv)
     else   { v = &b; w = &a; x = 1; }
   }
 
-  free(a.m);
-  free(b.m);
+  free_grid(&a);
+  free_grid(&b);
   return 0;
 }
