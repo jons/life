@@ -44,12 +44,27 @@ hypothesis a
 
 <p>the program should be read not per cell, but from the grid in its entirety.</p>
 
-<p>beginning with the top-most, left-most live cell, and ending with the bottom-
-most, right-most live cell, read all bits in the demarcated sub-grid. ignore the
-first marker cell because it is always 1. either ignore the last cell, or perhaps
-pad out the program with zeroes in some fashion.</p>
+<p>beginning with the top-most, left-most cell, reading row at a time to the
+right, and ending with the bottom-most row and the right-most cell, read all bits
+in the demarcated sub-grid. the extents of the grid should be determined by the
+furthest-placed live cell, not the total memory allocated for the grid.</p>
 
 <p>interpret the state as a sequence of rules, one after another, possibly of a
 more expressive structure than the currently designed. apply a rule to each cell,
 including the dead cells outside where the program was read from (that point is
-important), by treating the rule set as a circular queue.</p>
+important), by treating the rule set as a circular queue: simply loop back
+through the grid and loop through the program at the same time, applying the
+current rule to the current grid location, until all grid locations have their
+next state.</p>
+
+
+hypothesis b
+------------
+
+<p>the program should read the grid as in hypothesis a, but only the positions of
+the live cells.</p>
+
+<p>scan grid memory and re-interpret the locations of the live cells as K-bit
+natural numbers, which then can be taken for 8-bit instructions in the set. the
+value of K is probably dependent on the extents of the memory available for the
+grid.</p>
