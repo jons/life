@@ -56,12 +56,13 @@ uint8_t rcell (grid_t *g, uint32_t x, uint32_t y)
 
 
 /**
- * read the instruction local to <x,y> in the grid g
- * computes the number of living neighbors, n, and the
- * rule bits, r
+ * count neighbors of <x, y> in grid g
  */
-void info (page_t *p, grid_t *g, uint32_t x, uint32_t y)
+uint8_t scan (grid_t *g, uint32_t x, uint32_t y)
 {
+  // 0 1 2
+  // 7   3
+  // 6 5 4
   ofst_t o[8] = {
     { .x = -1, .y = -1 },
     { .x =  0, .y = -1 },
@@ -72,36 +73,117 @@ void info (page_t *p, grid_t *g, uint32_t x, uint32_t y)
     { .x = -1, .y =  1 },
     { .x = -1, .y =  0 },
   };
-  uint8_t c, i, n = 0, r = 0;
-
-  // 0 1 2
-  // 7   3
-  // 6 5 4
-
-  memset(p, 0, sizeof(page_t));
+  uint8_t i, n = 0;
   for (i = 0; i < 8; i++) {
-    c = rcell(g, x + o[i].x, y + o[i].y);
-    n += c;
-    r = (r << 1) | c;
+    n += rcell(g, x + o[i].x, y + o[i].y);
   }
-  p->n = n;
-  p->r.u8 = r;
+  return n;
+}
+
+
+/**
+ * interpret the current grid as a program
+ */
+void read_info (prog_t *e, grid_t *g)
+{
+  uint32_t x, y;
+  uint8_t c, r = 0, i = 0;
+  list_t *s;
+
+  for (x = g->e.t; x <= g->e.b; x++) // top to bottom
+  {
+    if (x == g->d) break;
+    for (y = g->e.l; y <= g->e.r; y++) // left to right
+    {
+      if (y == g->d) break;
+      // control-break on i:
+      // buffer cells until an instruction can be read
+      if (i == 8)
+      {
+        s = (list_t *)malloc(sizeof(list_t));
+        if (NULL != s)
+        {
+          s->r.u8 = r;
+          //printf(" [%p] f=%u op=%u x=%u\n", s, s->r.bm.f, s->r.bm.op, s->r.bm.x);
+          if (e->tail)
+          {
+            e->tail->next = s;
+            e->tail = s;
+          }
+          else
+          {
+            e->head = e->tail = s;
+          }
+          s->next = e->head; // must come after e->head change
+        }
+        r = 0;
+        i = 0;
+      }
+      //
+      c = rcell(g, x, y);
+      //printf("%u", c);
+      r = (r << 1) | c;
+      i++;
+    }
+  }
+
+  // pad out buffer with zeroes
+  // ensures we always have at least one instruction,
+  // even if the grid is empty or 2x2
+  while (i++ < 8)
+  {
+    //printf("0");
+    r <<= 1;
+  }
+
+  s = (list_t *)malloc(sizeof(list_t));
+  if (NULL != s)
+  {
+    s->r.u8 = r;
+    //printf(" [%p] f=%u op=%u x=%u\n", s, s->r.bm.f, s->r.bm.op, s->r.bm.x);
+    if (e->tail)
+    {
+      e->tail->next = s;
+      e->tail = s;
+    }
+    else
+    {
+      e->head = e->tail = s;
+    }
+    s->next = e->head;
+  }
+}
+
+
+/**
+ */
+void dump_info (prog_t *e)
+{
+  list_t *s = e->head;
+  while (e->head)
+  {
+    e->tail = e->head->next;
+    free(e->head);
+    if (e->tail == s) break;
+    e->head = e->tail;
+  }
+  e->head = NULL;
+  e->tail = NULL;
 }
 
 
 /**
  *  compute the next grid cell from the current grid cell for location <x,y>
  */
-void next_step (grid_t *n, grid_t *g, uint32_t x, uint32_t y)
+void next_step (grid_t *n, grid_t *g, rule_t *r, uint32_t x, uint32_t y)
 {
-  page_t p;
-  info(&p, g, x, y);
-  switch (p.r.bm.op)
+  uint8_t v = scan(g, x, y);
+  switch (r->bm.op)
   {
-    case OP_GT:  if (p.r.bm.x > p.n)  { wcell(n, x, y, p.r.bm.f); return; } break;
-    case OP_GTE: if (p.r.bm.x >= p.n) { wcell(n, x, y, p.r.bm.f); return; } break;
-    case OP_LT:  if (p.r.bm.x < p.n)  { wcell(n, x, y, p.r.bm.f); return; } break;
-    case OP_LTE: if (p.r.bm.x <= p.n) { wcell(n, x, y, p.r.bm.f); return; } break;
+    case OP_GT:  if (r->bm.x >  v) { wcell(n, x, y, r->bm.f); return; } break;
+    case OP_GTE: if (r->bm.x >= v) { wcell(n, x, y, r->bm.f); return; } break;
+    case OP_LT:  if (r->bm.x <  v) { wcell(n, x, y, r->bm.f); return; } break;
+    case OP_LTE: if (r->bm.x <= v) { wcell(n, x, y, r->bm.f); return; } break;
   }
   wcell(n, x, y, rcell(g, x, y));
 }
@@ -113,15 +195,27 @@ void next_step (grid_t *n, grid_t *g, uint32_t x, uint32_t y)
 void next_grid (grid_t *n, grid_t *g)
 {
   uint32_t x, y, d;
+  prog_t exe = { .head = NULL, .tail = NULL };
+  list_t *c;
+
   d = g->d;
   n->i = g->i + 1;
   n->e.t = d;
   n->e.b = d;
   n->e.l = d;
   n->e.r = d;
+
+  read_info(&exe, g);
+  c = exe.head;
+
   for (x = 0; x < d; x++)
     for (y = 0; y < d; y++)
-      next_step(n, g, x, y);
+    {
+      next_step(n, g, &(c->r), x, y);
+      c = c->next;
+    }
+
+  dump_info(&exe);
 }
 
 

@@ -12,8 +12,9 @@
 
 typedef struct grid grid_t;
 typedef union rule rule_t;
-typedef struct page page_t;
 typedef struct ofst ofst_t;
+typedef struct list list_t;
+typedef struct prog prog_t;
 
 struct grid
 {
@@ -46,20 +47,31 @@ union rule
   } bm;
 };
 
-struct page
+struct list
 {
-  rule_t  r; // local rule
-  uint8_t n; // neighbor count at locus
+  rule_t r;     // current instruction
+  list_t *next; // container of next one
 };
+
+struct prog
+{
+  list_t *head, // start of listing
+         *tail;
+};
+
 
 
 void wcell (grid_t *g, uint32_t x, uint32_t y, uint8_t v);
 
 uint8_t rcell (grid_t *g, uint32_t x, uint32_t y);
 
-void info (page_t *p, grid_t *g, uint32_t x, uint32_t y);
+uint8_t scan (grid_t *g, uint32_t x, uint32_t y);
 
-void next_step (grid_t *n, grid_t *g, uint32_t x, uint32_t y);
+void read_info (prog_t *e, grid_t *g);
+
+void dump_info (prog_t *e);
+
+void next_step (grid_t *n, grid_t *g, rule_t *r, uint32_t x, uint32_t y);
 
 void next_grid (grid_t *n, grid_t *g);
 
