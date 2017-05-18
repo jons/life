@@ -6,9 +6,13 @@
 #include "life.h"
 #include "draw.h"
 
-#define SZ (11)
+#define SZ (12)
+#define PSZ (32)
+// primes <= SZ*SZ
+int p[PSZ] = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131 };
 
 
+//
 int wait()
 {
   for (;;)
@@ -29,27 +33,27 @@ int wait()
 }
 
 
+//
 int main (int argc, char **argv)
 {
-  int x;
+  int x, y, i = 0, k;
   grid_t a, b, *v, *w;
 
   init_grid(&a, SZ);
   init_grid(&b, SZ);
 
   // LIVE! LIVE, DAMN YOU
-  wcell(&a, 0, 0, 1);
-  wcell(&a, 0, 1, 1);
-  wcell(&a, 1, 0, 1);
-  wcell(&a, 2, 0, 1);
-  wcell(&a, 4, 4, 1);
-  wcell(&a, 5, 5, 1);
-  wcell(&a, 5, 6, 1);
-  wcell(&a, 6, 6, 1);
-  wcell(&a, 8, 6, 1);
-  wcell(&a, 6, 10, 1);
-  wcell(&a, 7, 10, 1);
-
+  for (x = 0; x < SZ; x++)
+    for (y = 0; y < SZ; y++)
+    {
+      k = x * SZ + y;
+      if (p[i] == k)
+      {
+        wcell(&a, x, y, 1);
+        i++;
+        if (i == PSZ) i = 0;
+      }
+    }
 
   // flip-flop next/current grid
   v = &a; w = &b; x = 0;
