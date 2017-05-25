@@ -33,7 +33,6 @@ static void extents (grid_t *g, uint32_t x, uint32_t y)
  */
 void wcell (grid_t *g, uint32_t x, uint32_t y, uint8_t v)
 {
-  uint8_t p;
   uint32_t d = g->d;
   if (x >= d || y >= d)
     return;
@@ -63,7 +62,7 @@ uint8_t scan (grid_t *g, uint32_t x, uint32_t y)
   // 0 1 2
   // 7   3
   // 6 5 4
-  ofst_t o[8] = {
+  static const ofst_t o[8] = {
     { .x = -1, .y = -1 },
     { .x =  0, .y = -1 },
     { .x =  1, .y = -1 },
@@ -173,19 +172,28 @@ void dump_info (prog_t *e)
 
 
 /**
- *  compute the next grid cell from the current grid cell for location <x,y>
+ * compute the next grid cell from the current grid cell for location <x,y>
+ * return 1 if the new grid cell changed state, 0 if copied
  */
-void next_step (grid_t *n, grid_t *g, rule_t *r, uint32_t x, uint32_t y)
+int next_step (grid_t *n, grid_t *g, rule_t *r, uint32_t x, uint32_t y)
 {
   uint8_t v = scan(g, x, y);
+  uint8_t p = rcell(g, x, y);
+  int d = 0;
   switch (r->bm.op)
   {
-    case OP_GT:  if (r->bm.x >  v) { wcell(n, x, y, r->bm.f); return; } break;
-    case OP_GTE: if (r->bm.x >= v) { wcell(n, x, y, r->bm.f); return; } break;
-    case OP_LT:  if (r->bm.x <  v) { wcell(n, x, y, r->bm.f); return; } break;
-    case OP_LTE: if (r->bm.x <= v) { wcell(n, x, y, r->bm.f); return; } break;
+    case OP_GT:  d = r->bm.x >  v; break;
+    case OP_GTE: d = r->bm.x >= v; break;
+    case OP_LT:  d = r->bm.x <  v; break;
+    case OP_LTE: d = r->bm.x <= v; break;
   }
-  wcell(n, x, y, rcell(g, x, y));
+  if (d)
+  {
+    wcell(n, x, y, r->bm.f);
+    return p != r->bm.f;
+  }
+  wcell(n, x, y, p);
+  return 0;
 }
 
 
@@ -195,6 +203,7 @@ void next_step (grid_t *n, grid_t *g, rule_t *r, uint32_t x, uint32_t y)
 void next_grid (grid_t *n, grid_t *g)
 {
   uint32_t x, y, d;
+  uint32_t dt = 0;
   prog_t exe = { .head = NULL, .tail = NULL };
   list_t *c;
 
@@ -207,14 +216,13 @@ void next_grid (grid_t *n, grid_t *g)
 
   read_info(&exe, g);
   c = exe.head;
-
   for (x = 0; x < d; x++)
     for (y = 0; y < d; y++)
     {
-      next_step(n, g, &(c->r), x, y);
+      dt += next_step(n, g, &(c->r), x, y);
       c = c->next;
     }
-
+  n->dt = dt;
   dump_info(&exe);
 }
 
@@ -227,6 +235,7 @@ int init_grid (grid_t *g, uint32_t d)
   uint32_t x, y;
   g->i = 0;
   g->d = d;
+  g->dt = 0;
   g->e.t = d;
   g->e.b = d;
   g->e.l = d;

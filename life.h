@@ -26,6 +26,7 @@ struct grid
     uint8_t r;  //  right
   } e;          // extents of live cells
   uint32_t d;   // dimension of the grid
+  uint32_t dt;  // number of changes from previous grid
   uint32_t i;   // current iteration
   uint8_t *m;   // grid memory
 };
@@ -71,7 +72,7 @@ void read_info (prog_t *e, grid_t *g);
 
 void dump_info (prog_t *e);
 
-void next_step (grid_t *n, grid_t *g, rule_t *r, uint32_t x, uint32_t y);
+int next_step (grid_t *n, grid_t *g, rule_t *r, uint32_t x, uint32_t y);
 
 void next_grid (grid_t *n, grid_t *g);
 

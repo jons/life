@@ -60,6 +60,8 @@ int main (int argc, char **argv)
   for (;;) {
     draw(v);
     //
+    if (v->i && !v->dt) break;
+    //
     if (wait()) break;
     //
     next_grid(w, v);

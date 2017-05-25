@@ -15,11 +15,13 @@ void draw (grid_t *g)
     }
     switch (x)
     {
-      case 0: printf(" i: %u", g->i); break;
-      case 1: printf(" t: %u", g->e.t); break;
-      case 2: printf(" b: %u", g->e.b); break;
-      case 3: printf(" l: %u", g->e.l); break;
-      case 4: printf(" r: %u", g->e.r); break;
+      case 0: printf("  i: %u", g->i); break;
+      case 1: printf(" dt: %u", g->dt); break;
+
+      case 3: printf("  T: %u", g->e.t); break;
+      case 4: printf("  B: %u", g->e.b); break;
+      case 5: printf("  L: %u", g->e.l); break;
+      case 6: printf("  R: %u", g->e.r); break;
     }
     printf("\n");
   }
