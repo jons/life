@@ -3,6 +3,8 @@ life
 
 the self-programming game of life. or <i>splife</i>.
 
+familiarity with conway's game of life is expected for the reader of this document.
+
 in conway's game of life, the rule set for each cell is fixed:
   1. any live cell with fewer than two live neighbours dies, as if caused by under-population.
   1. any live cell with two or three live neighbours lives on to the next generation.
@@ -32,6 +34,12 @@ and the same.
 
 ## Machine Description
 
+as in traditional life, every cell within the grid is visited, the next state for that cell calculated and set aside
+temporarily, and then the old grid replaced with the new grid when all cells have been visited. also, the extents of
+the grid grow organically to accomodate every birth in each of the four cardinal directions. and, your favored memory
+representation of choice will work: typically rows count from zero at the top towards the bottom, and columns from
+zero on the left towards the right.
+
 program read order is clockwise, starting at "top dead center" for the row that the reader is currently on, spiraling
 outward to each successive ring of cells (bits).
 
@@ -55,7 +63,7 @@ else. i guess that might be interesting to look into, with a bigger word size, b
 the splife machine offers two registers to a program.
 
 `Rr` <p>the result register. stores only one bit of information. initialized to zero at the beginning of each program
-(each cell), and always written back to that cell when NOP/STOP is executed.</p>
+(each cell), and always written back to that cell when RET is executed.</p>
 
 `Rc` <p>the counter register. stores three bits of information. initialized to zero at the beginning of each program.
 read/written by other instructions.</p>
@@ -64,43 +72,47 @@ read/written by other instructions.</p>
 
 bitmasks for each instruction below describe which bits must be set to 1 or 0 and which are variable.
 
-the first two bits of each instruction word indicate what will be executed, with the exception of the NOP/STOP and
+the first two bits of each instruction word indicate what will be executed, with the exception of the RET and
 unconditional JUMP instructions, which share the prefix bits `00`.
 
 thus, there are five instructions.
 
-#### NOP/STOP
+#### RETURN (RET)
 
   `00000000`
 
   __program read stops. the program is over.__
 
-  * the current value of the result register Rr is written to cell position x.
+  * the current value of the result register `Rr` is written to cell position _x_.
   * lone cells die: this is their first/only instruction read (consistent with conway)
 
-#### JUMP
+#### JUMP (JMP)
 
   `00` `kkkkkk`
 
-  __jump the next k instructions and resume execution__
+  __jump the next `k` instructions and resume execution__
 
-  * k is a 6-bit, unsigned integer greater than zero (if zero, that would just be NOP/STOP)
+  * `k` is a 6-bit, unsigned integer greater than zero (if zero, that would just be RET)
+  * if `k` indicates a location that starts outside the grid, and stays outside the grid,
+this instruction _may_ be optimized to a RET.
 
-#### CONDITIONAL JUMP
+#### CONDITIONAL JUMP (CJMP)
 
   `01` `kkkkkk`
 
-  __jump the next k instructions if Rc is 1. resume read/execution there.__
+  __jump the next `k` instructions if `Rc` is nonzero. resume read/execution there.__
 
   * `k` is a 6-bit, unsigned integer.
+  * if `k` indicates a location that starts outside the grid, and stays outside the grid,
+this instruction _may_ be optimized to a RET.
 
-#### COMPARE
+#### COMPARE (CMP)
 
   `10` `fff` `kkk`
 
   __compare the counter register (LHS) to a constant value, k (RHS)__
 
-  * f defines the comparison operator:
+  * `f` defines the comparison operator:
     * `100` equal
     * `010` less-than
     * `110` less-than-or-equal
@@ -109,22 +121,60 @@ thus, there are five instructions.
     * `000` false
     * `111` true
     * `011` not-equal
-  * k is a 3-bit, unsigned integer
-  * store the result to the result register, Rr
+  * `k` is a 3-bit, unsigned integer
+  * store the result to the result register, `Rr`
   * if true then store 1, otherwise 0
 
-#### LOAD-INCREMENT
+#### LOAD-INCREMENT (LOI)
 
   `11` `uu` `ii` `jj`
 
   __reads a neighbor of x at offset i,j__
 
-  * the second bit pair, value u, is ignored. this should be considered an undefined region.
-  * if the cell at offset i,j from x is live, then add 1 to the counter register, Rc
-  * i and j are 2-bit, _one's complement_ integers:
+  * the second bit pair `u` is ignored. this should be considered an undefined region.
+  * if the cell at offset i,j from _x_ is live, then add 1 to the counter register, `Rc`
+  * `i` and `j` are 2-bit, _one's complement_ integers:
     * `00` zero
     * `01` one (e.g. right or down)
     * `10` negative one (e.g. left or up)
     * `11` negative zero. same as zero.
-  * whenever 1 is added to Rc and it was already at its max value of seven, Rc overflows to zero.
+  * whenever 1 is added to `Rc` and it was already at its max value of seven, `Rc` overflows to zero.
   * there is no overflow flag.
+
+## Implementation Detail
+
+__are off-grid cells dead? can i stop reading when i reach the edge?__
+
+like traditional life, reading cells off-grid is done by calling those locations dead, and not accessing what would
+be invalid memory. as can be seen in the read order illustration, it is possible in smaller grids to go beyond the
+extents of the acutal underlying memory and/or of the grid virtually superimposed on said memory, within the read of
+a single instruction word. for example, to the right when reading the first or second byte at bits 1 and 2,
+respectively. and it is possible even to come back into the grid when moving left to read bit 4 of byte 1 or bit 7
+of byte 2. thus it is important not to short-circuit this read loop and guess that the resulting instruction will be
+a RET when done simply because the rest of the cells are off grid and thus dead, as that is contingent on both the
+memory layout at that time and how many instructions will be read.
+
+__how many instructions will be read, and can they be fetched in advance of execution?__
+
+the fetch cycle stops when it finds a RET, however, the astute reader of this document will have noted that either
+jump instruction could send the fetcher beyond the RET that it is imminently headed for. while this is so, the
+range of values that can be jumped to are constrained, and the operand is an immediate constant, not a variable read
+from the program. thus, the fetch cycle can be completed prior to the execution of any instruction, for any cell.
+
+__why does unconditional JUMP with a range of 0 overlap with RET?__
+
+this simplifies execution greatly. the JUMP operand can simply move to the program counter increment that would already
+be used, and which would default to 1 inside the machine. were you to overwrite PCI with 0, you would not increment
+the program counter, fetch your JUMP 0 again, and execute it again, resulting in an infinite loop. this is the logical
+equivalent of never processing again, therefore, RET is the perfect instruction with which to overlap.
+
+__i see some bias in how patterns influence the "drift" of live cells in the grid due to the choices made that define
+any or all of these instructions.__
+
+me too.
+
+__you execute a different program for each cell because of the relative positions in the machine fetch algorithm.
+suppose instead you were to find the extents of the whole grid, read it as just one program, and then execute that
+program on each cell?__
+
+indeed.
