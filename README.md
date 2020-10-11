@@ -11,60 +11,105 @@ life
 
 <p>in variations on conway's game, the rule set is parameterized.</p>
 
-<p>in <i>splife</i>, there is one rule per cell, and it is the program which is
-read from the neighboring cells by taking each to be one bit of code/data.</p>
+<p>in <i>splife</i>, as each cell is processed, the rules are expressed as a program
+stored in the grid itself, relative to the position of that cell.
 
-<p>the cell program read order is clockwise, starting at the top-left diagonal.</p>
+## Machine Description
 
-<p>program structure is not fully general.</p>
+<p>program read order is clockwise, starting at "top dead center" for the row that the
+reader is currently on, spiraling outward to each successive ring of cells (bits).</p>
 
-<pre>
-  struct {
-    uint8_t f   : 1;
-    uint8_t op  : 2;
-    uint8_t x   : 3;
-    uint8_t z   : 2; // not used
-  } mask;
-</pre>
+<p>![program read order](docs/read-order.png)</p>
 
-<p>it consists of: the future state, one bit, to live or to die in the next
-grid; an operator, two bits, GT, GTE, LT or LTE, the comparator used between the
-number of neighbors counted in total and the program's only variable; and x,
-three bits in this case, the program variable.</p>
+<p>in this illustration and in the rest of this document the current cell is just called x.</p>
 
-<p>naturally you can see a bias in x in the current implementation. it will
-always be less than n, and it will always come from the same neighbors, so a
-lifeform cannot move in one general direction (downward, in this case).</p>
+<p>cell x is encircled by three bytes of code: blue, green, and yellow, in that order.
+the astute reader will note that each ring contains one more byte than the last.</p>
 
-<p>this is the interesting part: to remove the bias.</p>
+<p>the current maximum/minimum extents of the living cells in the grid define what cells
+are processed and thus how many programs are run for a single generation. addressing within
+a program is done relative to the cell being processed, so as to circumvent the issue of
+renumbering memory addresses from a new "zero" whenever the grid expands/contracts.</p>
 
+<p>the machine does not have a stack or heap. the grid state is self-evident, and it is
+its own program code, but nothing else. i guess that might be interesting to look into,
+with a bigger word size (you'll see below).</p>
 
-hypothesis a
-------------
+## Registers
 
-<p>the program should be read not per cell, but from the grid in its entirety.</p>
+<p>the splife machine offers two registers to a program.</p>
 
-<p>beginning with the top-most, left-most cell, reading row at a time to the
-right, and ending with the bottom-most row and the right-most cell, read all bits
-in the demarcated sub-grid. the extents of the grid should be determined by the
-furthest-placed live cell, not the total memory allocated for the grid.</p>
+<p>`Rr` : the result register. stores only one bit of information. initialized to zero
+at the beginning of each program (each cell), and always written back to that cell when
+NOP/STOP is executed.</p>
 
-<p>interpret the state as a sequence of rules, one after another, possibly of a
-more expressive structure than the currently designed. apply a rule to each cell,
-including the dead cells outside where the program was read from (that point is
-important), by treating the rule set as a circular queue: simply loop back
-through the grid and loop through the program at the same time, applying the
-current rule to the current grid location, until all grid locations have their
-next state.</p>
+<p>`Rc` : the counter register. stores three bits of information. initialized to zero
+at the beginning of each program. read/written by other instructions.</p>
 
+## Instructions
 
-hypothesis b
-------------
+<p>the first two bits of each instruction word indicate what will be executed, with the
+exception of the NOP/STOP and unconditional JUMP instructions, which share the prefix bits
+`00`. thus, there are five instructions.</p>
 
-<p>the program should read the grid as in hypothesis a, but only the positions of
-the live cells.</p>
+<p>masks of each instruction below describe which bits must be set to 1 or 0 and which are
+variable.</p>
 
-<p>scan grid memory and re-interpret the locations of the live cells as K-bit
-natural numbers, which then can be taken for 8-bit instructions in the set. the
-value of K is probably dependent on the extents of the memory available for the
-grid.</p>
+#### NOP/STOP
+
+  `00000000`
+
+  __program read stops. the program is over.__
+
+  * the current value of the result register Rr is written to cell position x.
+  * lone cells die: this is their first/only instruction read (consistent with conway)
+
+#### JUMP
+
+  `00` `kkkkkk`
+
+  __jump the next k instructions and resume execution__
+
+  * k is a 6-bit, unsigned integer greater than zero (if zero, that would be NOP/STOP)
+
+#### CONDITIONAL JUMP
+
+  `01` `kkkkkk`
+
+  __jump the next k instructions if Rc is 1. resume read/execution there.__
+
+  * `k` is a 6-bit, unsigned integer.
+
+#### COMPARE
+
+  `10` `fff` `kkk`
+
+  __compare the counter register (LHS) to a constant value, k (RHS)__
+
+  * f defines the comparison operator:
+    * `100` equal
+    * `010` less-than
+    * `110` less-than-or-equal
+    * `001` greater-than
+    * `101` greater-than-or-equal
+    * `000` false
+    * `111` true
+    * `011` not-equal
+  * k is a 3-bit, unsigned integer
+  * store the result to the result register, Rr
+  * if true then store 1, otherwise 0
+
+#### LOAD-INCREMENT
+
+  `11 `00` `ii` `jj`
+
+  __reads a neighbor of x at offset i,j__
+
+  * if the cell at offset i,j from x is live, then add 1 to the counter register, Rc
+  * i and j are 2-bit, _one's complement_ integers:
+    * `00` zero
+    * `01` one (e.g. right or down)
+    * `10` negative one (e.g. left or up)
+    * `11` negative zero. same as zero.
+  * whenever 1 is added to Rc and it was already at its max value of seven, Rc overflows to zero.
+  * there is no overflow flag.
