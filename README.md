@@ -41,7 +41,7 @@ representation of choice will work: typically rows count from zero at the top to
 zero on the left towards the right.
 
 program read order is clockwise, starting at "top dead center" for the row that the reader is currently on, spiraling
-outward to each successive ring of cells (bits).
+outward to each successive ring of cells. each cell is one bit. instruction words are one byte.
 
 in this illustration and in the rest of this document the current cell is referred to as _x_:
 
@@ -150,16 +150,33 @@ a future implementation may require that `u` be `00` to execute the LOI instruct
 
 ## Implementation Detail
 
+__spiraling outward from x? how does the program counter work?__
+
+starting at the i,j where x is found, the PC is set one row above, then N instructions are read in a certain square
+clockwise pattern of a certain width, and then the process is repeated for N+1. said pattern is contingent on N. thus
+a vector of moves can be deduced for each instruction, and there are eight such moves per instruction, every time.
+
+before the machine executes a program it sets its internal program counter increment (PCI) to 1. the jump instructions
+are allowed to change this value, but then it will be reset to 1 before the next instruction executes. i don't consider
+it a register because it shouldn't be directly exposed to the program, and, future versions of this machine could
+introduce levels of detail that real, early architectures have had which make branching more indirect/relative, and we
+still want to be talking rationally about "the program counter" in that scenario, where the arguments to a branch or
+jump are far removed from the actual change effected on the PC.
+
+one could use a bit of math to skip ahead rather than calculate every vector when jumping... i think.
+
 __are off-grid cells dead? can i stop reading when i reach the edge?__
 
 like traditional life, reading cells off-grid is done by calling those locations dead, and not accessing what would
 be invalid memory. as can be seen in the read order illustration, it is possible in smaller grids to go beyond the
 extents of the acutal underlying memory and/or of the grid virtually superimposed on said memory, within the read of
 a single instruction word. for example, to the right when reading the first or second byte at bits 1 and 2,
-respectively. and it is possible even to come back into the grid when moving left to read bit 4 of byte 1 or bit 7
-of byte 2. thus it is important not to short-circuit this read loop and guess that the resulting instruction will be
-a RET when done simply because the rest of the cells are off grid and thus dead, as that is contingent on both the
-memory layout at that time and how many instructions will be read.
+respectively. _and it is possible even to come back into the grid_ again for example when moving left to read bit 4
+of byte 1 or bit 7 of byte 2.
+
+thus it is important not to short-circuit this read loop when leaving the grid. always collect all eight cells of
+each instruction vector, just don't read any memory when the coordinate is off-grid. unlike traditional life, you are
+not simply counting neighbors, you are placing bits in a specific position within a byte.
 
 __how many instructions will be read, and can they be fetched in advance of execution?__
 
