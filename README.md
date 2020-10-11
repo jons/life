@@ -110,7 +110,7 @@ this instruction _may_ be optimized to a RET.
 
   `10` `fff` `kkk`
 
-  __compare the counter register (LHS) to a constant value, k (RHS)__
+  __compare the counter register `Rc` (LHS) to a constant value `k` (RHS)__
 
   * `f` defines the comparison operator:
     * `100` equal
@@ -123,23 +123,25 @@ this instruction _may_ be optimized to a RET.
     * `011` not-equal
   * `k` is a 3-bit, unsigned integer
   * store the result to the result register, `Rr`
-  * if true then store 1, otherwise 0
+  * if the result is true then store 1, otherwise 0
 
 #### LOAD-INCREMENT (LOI)
 
   `11` `uu` `ii` `jj`
 
-  __reads a neighbor of x at offset i,j__
+  __reads a neighbor of _x_ at row offset `i` and column offset `j`__
 
-  * the second bit pair `u` is ignored. this should be considered an undefined region.
-  * if the cell at offset i,j from _x_ is live, then add 1 to the counter register, `Rc`
+  * if the cell at offset `i`,`j` from _x_ is live, then add 1 to the counter register `Rc`
   * `i` and `j` are 2-bit, _one's complement_ integers:
     * `00` zero
     * `01` one (e.g. right or down)
     * `10` negative one (e.g. left or up)
     * `11` negative zero. same as zero.
-  * whenever 1 is added to `Rc` and it was already at its max value of seven, `Rc` overflows to zero.
+  * whenever 1 is added to `Rc` and it was already at its max value of seven, `Rc`
+overflows to zero.
   * there is no overflow flag.
+  * the second bit pair `u` is ignored. this should be considered an undefined region.
+a future implementation may require that `u` be `00` to execute the LOI instruction.
 
 ## Implementation Detail
 
