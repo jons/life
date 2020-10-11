@@ -1,59 +1,58 @@
 life
 ====
 
-<p>the self-programming game of life. or <i>splife</i>.</p>
+the self-programming game of life. or <i>splife</i>.
 
-<p>in conway's game of life, the rule set for each cell is fixed:</p>
-<ol><li>any live cell with fewer than two live neighbours dies, as if caused by under-population.</li>
-<li>any live cell with two or three live neighbours lives on to the next generation.</li>
-<li>any live cell with more than three live neighbours dies, as if by overcrowding.</li>
-<li>any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.</li></ol>
+in conway's game of life, the rule set for each cell is fixed:
+  1. any live cell with fewer than two live neighbours dies, as if caused by under-population.
+  1. any live cell with two or three live neighbours lives on to the next generation.
+  1. any live cell with more than three live neighbours dies, as if by overcrowding.
+  1. any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 
-<p>in variations on conway's game, the rule set is parameterized.</p>
+in variations on conway's game, the rule set is parameterized.
 
-<p>in <i>splife</i>, as each cell is processed, the rules are expressed as a program
+in _splife_, as each cell is processed, the rules are expressed as a program
 stored in the grid itself, relative to the position of that cell.
 
 ## Machine Description
 
-<p>program read order is clockwise, starting at "top dead center" for the row that the
-reader is currently on, spiraling outward to each successive ring of cells (bits).</p>
+program read order is clockwise, starting at "top dead center" for the row that the
+reader is currently on, spiraling outward to each successive ring of cells (bits).
 
-<p>![program read order](docs/read-order.png)</p>
+![program read order](docs/read-order.png)
 
-<p>in this illustration and in the rest of this document the current cell is just called x.</p>
+in this illustration and in the rest of this document the current cell is just called _x_.
 
-<p>cell x is encircled by three bytes of code: blue, green, and yellow, in that order.
-the astute reader will note that each ring contains one more byte than the last.</p>
+cell _x_ is encircled by three bytes of code: blue, green, and yellow, in that order.
+the astute reader will note that each ring contains one more byte than the last.
 
-<p>the current maximum/minimum extents of the living cells in the grid define what cells
+the current maximum/minimum extents of the living cells in the grid define what cells
 are processed and thus how many programs are run for a single generation. addressing within
 a program is done relative to the cell being processed, so as to circumvent the issue of
-renumbering memory addresses from a new "zero" whenever the grid expands/contracts.</p>
+renumbering memory addresses from a new "zero" whenever the grid expands/contracts.
 
-<p>the machine does not have a stack or heap. the grid state is self-evident, and it is
+the machine does not have a stack or heap. the grid state is self-evident, and it is
 its own program code, but nothing else. i guess that might be interesting to look into,
-with a bigger word size (you'll see below).</p>
+with a bigger word size, but first read on.
 
 ## Registers
 
-<p>the splife machine offers two registers to a program.</p>
+the splife machine offers two registers to a program.
 
-<p>`Rr` : the result register. stores only one bit of information. initialized to zero
+`Rr` <p>the result register. stores only one bit of information. initialized to zero
 at the beginning of each program (each cell), and always written back to that cell when
 NOP/STOP is executed.</p>
 
-<p>`Rc` : the counter register. stores three bits of information. initialized to zero
+`Rc` <p>the counter register. stores three bits of information. initialized to zero
 at the beginning of each program. read/written by other instructions.</p>
 
 ## Instructions
 
-<p>the first two bits of each instruction word indicate what will be executed, with the
+the first two bits of each instruction word indicate what will be executed, with the
 exception of the NOP/STOP and unconditional JUMP instructions, which share the prefix bits
-`00`. thus, there are five instructions.</p>
+`00`. thus, there are five instructions.
 
-<p>masks of each instruction below describe which bits must be set to 1 or 0 and which are
-variable.</p>
+bitmasks for each instruction below describe which bits must be set to 1 or 0 and which are variable.
 
 #### NOP/STOP
 
@@ -101,7 +100,7 @@ variable.</p>
 
 #### LOAD-INCREMENT
 
-  `11 `00` `ii` `jj`
+  `11` `00` `ii` `jj`
 
   __reads a neighbor of x at offset i,j__
 
