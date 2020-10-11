@@ -1,7 +1,7 @@
 life
 ====
 
-the self-programming game of life. or <i>splife</i>.
+the self-programming game of life. or _splife_.
 
 familiarity with conway's game of life is expected for the reader of this document.
 
@@ -62,20 +62,21 @@ else. i guess that might be interesting to look into, with a bigger word size, b
 
 the splife machine offers two registers to a program.
 
-`Rr` <p>the result register. stores only one bit of information. initialized to zero at the beginning of each program
-(each cell), and always written back to that cell when RET is executed.</p>
+`Rr` <p>__the result register.__ stores only one bit of information. initialized to zero at the beginning of each
+program (each cell), and always written back to that cell when RET is executed. written to by a compare
+instruction.</p>
 
-`Rc` <p>the counter register. stores three bits of information. initialized to zero at the beginning of each program.
-read/written by other instructions.</p>
+`Rc` <p>__the counter register.__ stores three bits of information. initialized to zero at the beginning of each
+program. read by compare and conditional jump instructions, written to by a load instruction.</p>
 
 ## Instructions
 
-bitmasks for each instruction below describe which bits must be set to 1 or 0 and which are variable.
+bitmasks for each instruction below describe which bits must be set to 1 or 0 and which are operands. when an operand
+exists for an instruction, it is named with one letter, but that letter is repeated in the mask to demonstrate width
+in bits of the value. for example, a function code `f` that is three bits is documented as `fff`.
 
 the first two bits of each instruction word indicate what will be executed, with the exception of the RET and
-unconditional JUMP instructions, which share the prefix bits `00`.
-
-thus, there are five instructions.
+unconditional JUMP instructions, which share the prefix bits `00`. thus, there are five instructions.
 
 #### RETURN (RET)
 
@@ -85,6 +86,7 @@ thus, there are five instructions.
 
   * the current value of the result register `Rr` is written to cell position _x_.
   * lone cells die: this is their first/only instruction read (consistent with conway)
+  * no matter how big the grid is, the machine will inevitably find a return instruction.
 
 #### JUMP (JMP)
 
@@ -100,11 +102,14 @@ this instruction _may_ be optimized to a RET.
 
   `01` `kkkkkk`
 
-  __jump the next `k` instructions if `Rc` is nonzero. resume read/execution there.__
+  __jump to the next `k`th instruction if `Rc` is nonzero. resume read/execution there.__
 
   * `k` is a 6-bit, unsigned integer.
   * if `k` indicates a location that starts outside the grid, and stays outside the grid,
 this instruction _may_ be optimized to a RET.
+  * the machine simply updates its PCI with `k` and continues, which means `k=1` is the
+equivalent of a NOP instruction, as the PCI defaults to 1 at the start of each new program
+execution anyway.
 
 #### COMPARE (CMP)
 
