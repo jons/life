@@ -3,7 +3,7 @@ life
 
 the self-programming game of life. or _splife_.
 
-familiarity with conway's game of life is expected for the reader of this document.
+familiarity with conway's game of life is expected for the reader of this document, so let me give you some.
 
 in conway's game of life, the rule set for each cell is fixed:
   1. any live cell with fewer than two live neighbours dies, as if caused by under-population.
@@ -22,15 +22,14 @@ when asked, has the game of life been built upon, conway replies:
 >that followed on it was just as interesting as the basic fact that this set of rules did exist, fairly simple,
 >and have these astonishing properties.
 
-after several years of searching, and thinking on the design presented here, i must now disagree: i think this is
-_quite_ interesting. and! i think that others with more math/compsci sophistication than i have (which is not much!),
-and who see the door that this opens and what is behind it, are _sure_ to improve upon it.
+after several years of researching variations, and thinking on the design presented here, i must now disagree:
+i think this family of state machines is still _quite_ interesting. here is why.
 
-here is why.
+in _splife_, when each cell is processed, the rules for whether that cell lives or dies are expressed as a program
+that is systematically derived from the state of the other nearby grid cells. thus each cell's future is determined
+by its "neighborhood" during that iteration, and the rules will be different on the next iteration.
 
-in _splife_, as each cell is processed, the rules are expressed as a program stored in the grid itself, relative to
-the position of that cell. the current state of the world, relative to the cell, and the rules for that cell, are one
-and the same.
+most initial machine states die (hypothetically). but those that live, perhaps even grow, are self-editing programs.
 
 ## Machine Description
 
@@ -40,8 +39,12 @@ the grid grow organically to accomodate every birth in each of the four cardinal
 representation of choice will work: typically rows count from zero at the top towards the bottom, and columns from
 zero on the left towards the right.
 
-program read order is clockwise, starting at "top dead center" for the row that the reader is currently on, spiraling
-outward to each successive ring of cells. each cell is one bit. instruction words are one byte.
+when a cell is visited, the machine must read the surrounding program to get the set of rules for that cell.
+
+each cell is one bit. instruction words are one byte.
+
+program read order is clockwise starting at "top dead center" or "above" the cell. the reader begins on the row containing
+this location, and it spirals outward to each successive "ring" of cells.
 
 in this illustration and in the rest of this document the current cell is referred to as _x_:
 
