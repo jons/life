@@ -269,12 +269,12 @@ int main (int argc, char **argv)
     prog_init(&e);
     rv = grid_init(&g, 3);
     assert(rv);
-    // give birth to grid diagonal
+    // give birth to a known grid
     rv = grid_write(&g, 0, 0, 1);
     assert(rv);
     rv = grid_write(&g, 1, 1, 1);
     assert(rv);
-    rv = grid_write(&g, 2, 2, 1);
+    rv = grid_write(&g, 2, 0, 1);
     assert(rv);
 
     compiler_init(&c, &e);

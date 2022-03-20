@@ -54,70 +54,45 @@ int compiler_append (compiler_t *c, rule_t *r)
 int compiler_readinfo_step (uint32_t n, uint32_t *v, uint32_t *x, uint32_t *y)
 {
     assert(n > 1);
-    //printf("step[%u][%u]:", n, *v);
     switch (*v)
     {
         case 0: // right: 1, 0
             if (*x + 1 == n)
             {
-                //printf("turn\n");
                 *v = 1;
                 return compiler_readinfo_step(n, v, x, y);
             }
-            else
-            {
-                //printf("right");
-                (*x)++;
-            }
+            (*x)++;
             break;
 
         case 1: // down: 0, 1
             if (*y + 1 == n)
             {
-                //printf("turn\n");
                 *v = 2;
                 return compiler_readinfo_step(n, v, x, y);
             }
-            else
-            {
-                //printf("down");
-                (*y)++;
-            }
+            (*y)++;
             break;
 
         case 2: // left: -1, 0
             if (*x == 0)
             {
-                //printf("turn\n");
                 *v = 3;
                 return compiler_readinfo_step(n, v, x, y);
             }
-            else
-            {
-                //printf("left");
-                (*x)--;
-            }
+            (*x)--;
             break;
 
         case 3: // up: 0, -1
             if (*y == 0)
             {
-                //printf("turn\n");
                 *v = 0;
                 return compiler_readinfo_step(n, v, x, y);
             }
-            else
-            {
-                //printf("up");
-                (*y)--;
-            }
+            (*y)--;
             break;
-
-        default:
-            return 1;
     }
-    //printf(":%u,%u\n", *x, *y);
-    return 0;
+    return 1;
 }
 
 
@@ -134,9 +109,10 @@ int compiler_readinfo (compiler_t *c, grid_t *g, uint32_t rx, uint32_t ry)
 {
     uint32_t d, v, x, y;
     uint32_t i, j, b, r;
-    uint8_t halt, k;
+    uint8_t halt;
     rule_t rule;
 
+    // count total number of bytes as we go
     i = 0;
     halt = 1;
     for (r = 0; halt; r++)
@@ -152,23 +128,16 @@ int compiler_readinfo (compiler_t *c, grid_t *g, uint32_t rx, uint32_t ry)
         for (j = 0; j < (r + 1); j++)
         {
             i++;
-            //printf(">readinfo:byte:%u\n", i);
-            // move through all 8 bit positions in the ring
-            k = 0;
+            // move through all 8 bit positions in the current byte ring
+            // read each cell into one bit of current rule
+            rule.u8 = 0;
             for (b = 0; b < 8; b++)
             {
-                k <<= 1;
                 if (grid_read(g, x, y))
-                    k = k | 1;
-
-                // ring-step to next bit
+                    rule.u8 |= (1 << (7 - b));
                 compiler_readinfo_step(d, &v, &x, &y);
             }
 
-            // interpret and "compile" instruction, append to program
-            rule.u8 = k;
-            //list_single(&rule);
-            //printf("\n");
             if (0 == compiler_append(c, &rule))
             {
                 // malloc failed
@@ -177,15 +146,11 @@ int compiler_readinfo (compiler_t *c, grid_t *g, uint32_t rx, uint32_t ry)
 
             // if the program has a jump range, we'll keep reading
             // otherwise, halt once we read RET (or JMP 0, same thing)
-            //printf(">readinfo:jumprange:%u\n", c->jr);
-            //printf(">readinfo:op:%u\n", rule.ret.op);
             if (c->jr == 0 && rule.ret.in == PI_RET && rule.ret.op == 0)
             {
-                //printf("halting\n");
                 halt = 0;
                 break;
             }
-            //printf("\n");
         }
     }
     return 1;

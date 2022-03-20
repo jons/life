@@ -35,26 +35,26 @@ union rule
   uint8_t u8;
   // RET and unconditional JUMP
   struct {
-    uint8_t in  : 2;  // instruction 00
     uint8_t op  : 6;  // all operands
+    uint8_t in  : 2;  // instruction 00
   } ret;
   // conditional JUMP
   struct {
-    uint8_t in  : 2;  // instruction 01
     uint8_t pci : 6;  // program counter increment
+    uint8_t in  : 2;  // instruction 01
   } cjmp;
   // COMPARE
   struct {
-    uint8_t in  : 2;  // instruction 10
-    uint8_t op  : 3;  // comparison operator
     uint8_t k   : 3;  // constant
+    uint8_t op  : 3;  // comparison operator
+    uint8_t in  : 2;  // instruction 10
   } cmp;
   // LOAD-INCREMENT
   struct {
-    uint8_t in  : 2;  // instruction 11
-    uint8_t u   : 2;  // ignored
-    uint8_t i   : 2;  // row-offset
     uint8_t j   : 2;  // col-offset
+    uint8_t i   : 2;  // row-offset
+    uint8_t u   : 2;  // ignored
+    uint8_t in  : 2;  // instruction 11
   } loi;
 };
 
