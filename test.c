@@ -12,6 +12,7 @@
 #include "draw.h"
 #include "prog.h"
 #include "compiler.h"
+#include "life.h"
 
 /**
  * check expected equals actual: list_t*
@@ -267,26 +268,64 @@ int main (int argc, char **argv)
 
     // create a 3x3 to start doing some real checks with
     prog_init(&e);
-    rv = grid_init(&g, 3);
-    assert(rv);
-    // give birth to a known grid
-    rv = grid_write(&g, 0, 0, 1);
-    assert(rv);
-    rv = grid_write(&g, 1, 1, 1);
-    assert(rv);
-    rv = grid_write(&g, 2, 0, 1);
+    rv = grid_init(&g, 1);
     assert(rv);
 
+    // check compiler on an empty grid
+    compiler_init(&c, &e);
+    rv = compiler_readinfo(&c, &g, 0, 0);
+    assert(rv);
+    draw(&g);
+    list(&e);
+    chk_eq_i("prog_length: compiled one instruction", 1, rv);
+    chk_eq_u8("e[0] is RET (in=0)", PI_RET, c.e->head->r.ret.in);
+    chk_eq_u8("e[0] is RET (op=0)", 0, c.e->head->r.ret.op);
+    grid_free(&g);
+    prog_free(&e);
+
+    // reallocate, give birth to a known test grid
+    prog_init(&e);
+    grid_init(&g, 3);
+    grid_write(&g, 0, 0, 1);
+    grid_write(&g, 1, 1, 1);
+    grid_write(&g, 2, 0, 1);
+    draw(&g);
     compiler_init(&c, &e);
     rv = compiler_readinfo(&c, &g, 1, 1);
     assert(rv);
-    // draw and list
-    draw(&g);
+    rv = prog_length(&e);
+    chk_eq_i("prog_length: compiled two instructions", 2, rv);
+    chk_eq_u8("e[0] is CJMP", PI_CJMP, e.head->r.cjmp.in);
+    chk_eq_u8("e[0] CJMP range", 1, e.head->r.cjmp.pci);
+    chk_eq_u8("e[1] is RET (in=0)", PI_RET, e.head->next->r.ret.in);
+    chk_eq_u8("e[1] is RET (op=0)", 0, e.head->next->r.ret.op);
+
+    rv = life_execute_cell(&e, &g, 1, 1);
+    assert(rv);
+    chk_eq_u8("life_execute_cell: cell <1,1> dies", 0, e.r);
+    prog_free(&e);
+
+    // construct mock program and verify on same test grid
+    prog_init(&e);
+    r.loi.in = PI_LOI;
+    r.loi.i = 2;
+    r.loi.j = 2;
+    prog_append(&e, &r);
+    r.loi.in = PI_LOI;
+    r.loi.i = 1;
+    r.loi.j = 2;
+    prog_append(&e, &r);
+    r.cmp.in = PI_CMP;
+    r.cmp.op = CMP_OP_EQ;
+    r.cmp.k = 2;
+    prog_append(&e, &r);
     list(&e);
-
-    // todo: check readinfo result
-
-    grid_free(&g);
+    rv = prog_length(&e);
+    chk_eq_i("prog_length: injected three instructions", 3, rv);
+    rv = life_execute_cell(&e, &g, 1, 1);
+    assert(rv);
+    chk_eq_u8("life_execute_cell: counted cells <0,0> and <0,2> from <1,1>", 2, e.c);
+    chk_eq_u8("life_execute_cell: CMP [Rc] eq $2 (true) sets Rr", 1, e.r);
     prog_free(&e);
 
     return 0;

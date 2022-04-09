@@ -21,6 +21,8 @@ void draw (grid_t *g)
     }
 }
 
+/**
+ */
 void list_single (rule_t *r)
 {
     int i, j;
@@ -78,7 +80,7 @@ void list_single (rule_t *r)
         case PI_LOI:
             i = prog_loi_offset(r->loi.i);
             j = prog_loi_offset(r->loi.j);
-            printf("_LOI Rr [%d][%d]", i, j);
+            printf("_LOI Rc [%d][%d]", i, j);
             break;
 
         default:

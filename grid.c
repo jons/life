@@ -28,7 +28,6 @@ int grid_init (grid_t *g, uint32_t d)
     return 1;
 }
 
-
 /**
  * release memory allocated by grid_init. idempotent.
  */
@@ -39,7 +38,6 @@ void grid_free (grid_t *g)
     g->m = NULL;
     g->d = 0;
 }
-
 
 /**
  * add rows and columns to the outside edges of grid G
@@ -74,7 +72,6 @@ int grid_extend (grid_t *g, uint8_t s)
     return 1;
 }
 
-
 /**
  * write a cell state value at <x,y> in grid G
  * 
@@ -89,7 +86,6 @@ int grid_write (grid_t *g, uint32_t x, uint32_t y, uint8_t v)
     g->m[x + d * y] = v ? 1 : 0;
     return 1;
 }
-
 
 /**
  * read cell state value at <x,y> in grid G

@@ -74,3 +74,17 @@ int prog_append (prog_t *e, const rule_t *r)
     }
     return 1;
 }
+
+/**
+ */
+int prog_length (prog_t *e)
+{
+    int len = 0;
+    list_t *ip = e->head;
+    while (ip != NULL)
+    {
+        len++;
+        ip = ip->next;
+    }
+    return len;
+}

@@ -77,7 +77,7 @@ int main (int argc, char **argv)
         //
         if (wait()) break;
         //
-        life_step(w, v);
+        life_execute(w, v);
 
         // flip-flop next/current grid on each pass
         if (x) { v = &a; w = &b; x = 0; }

@@ -26,50 +26,55 @@
 #define CMP_OP_LTE  (6) // 110
 #define CMP_OP_T    (7) // 111
 
+// faults
+#define FA_PI      (1) // invalid instruction
+#define FA_CMP_OP  (2) // invalid comparison operator
+
 typedef union rule rule_t;
 typedef struct list list_t;
 typedef struct prog prog_t;
 
 union rule
 {
-  uint8_t u8;
-  // RET and unconditional JUMP
-  struct {
-    uint8_t op  : 6;  // all operands
-    uint8_t in  : 2;  // instruction 00
-  } ret;
-  // conditional JUMP
-  struct {
-    uint8_t pci : 6;  // program counter increment
-    uint8_t in  : 2;  // instruction 01
-  } cjmp;
-  // COMPARE
-  struct {
-    uint8_t k   : 3;  // constant
-    uint8_t op  : 3;  // comparison operator
-    uint8_t in  : 2;  // instruction 10
-  } cmp;
-  // LOAD-INCREMENT
-  struct {
-    uint8_t j   : 2;  // col-offset
-    uint8_t i   : 2;  // row-offset
-    uint8_t u   : 2;  // ignored
-    uint8_t in  : 2;  // instruction 11
-  } loi;
+    uint8_t u8;
+    // RET and unconditional JUMP
+    struct {
+        uint8_t op  : 6;  // all operands
+        uint8_t in  : 2;  // instruction 00
+    } ret;
+    // conditional JUMP
+    struct {
+        uint8_t pci : 6;  // program counter increment
+        uint8_t in  : 2;  // instruction 01
+    } cjmp;
+    // COMPARE
+    struct {
+        uint8_t k   : 3;  // constant
+        uint8_t op  : 3;  // comparison operator
+        uint8_t in  : 2;  // instruction 10
+    } cmp;
+    // LOAD-INCREMENT
+    struct {
+        uint8_t j   : 2;  // col-offset
+        uint8_t i   : 2;  // row-offset
+        uint8_t u   : 2;  // ignored
+        uint8_t in  : 2;  // instruction 11
+    } loi;
 };
 
 struct list
 {
-  rule_t r;     // current instruction
-  list_t *next; // container of next one
+    rule_t r;     // current instruction
+    list_t *next; // container of next one
 };
 
 struct prog
 {
-  uint8_t r;    // result register, Rr
-  uint8_t c;    // counter register, Rc
-  list_t *head, // listing
-         *tail;
+    uint8_t f;    // fault code
+    uint8_t r;    // result register, Rr
+    uint8_t c;    // counter register, Rc
+    list_t *head, // listing
+            *tail;
 };
 
 struct compiler
@@ -96,5 +101,10 @@ int prog_loi_offset (uint8_t ofst);
  * add rule to the bottom of the listing in program e.
  */
 int prog_append (prog_t *e, const rule_t *r);
+
+/**
+ * return the number of instructions in program E
+ */
+int prog_length (prog_t *e);
 
 #endif

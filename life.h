@@ -16,15 +16,20 @@ struct hist
 };
 
 /**
+ * 
+ */
+int life_execute_cell (prog_t *p, grid_t *g, uint32_t x, uint32_t y);
+
+/**
  * perform a single iteration of life on the current grid, writing
- * the new universe to the next grid
+ * the new universe to the next grid, by running life_execute_cell
+ * for every cell.
  * 
  * grids must be the same dimensions
  * grow each grid by one new ring
  * compile the programs for each cell of grid 'current'
  * run them and write the output into grid 'next'
  */
-void life_step (grid_t *next, grid_t *current);
-
+void life_execute (grid_t *next, grid_t *current);
 
 #endif

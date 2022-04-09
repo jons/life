@@ -8,29 +8,33 @@
 #include <stdint.h>
 
 typedef struct grid grid_t;
-typedef struct ofst ofst_t;
 
 struct grid
 {
-  uint32_t d;   // dimension of the grid
-  uint8_t *m;   // grid memory
+    uint32_t d;   // dimension of the grid
+    uint8_t *m;   // grid memory
 };
 
-struct ofst
-{
-  int8_t i; // these values are 1, 0, or -1
-  int8_t j; // they have been converted with prog_loi_offset
-};
-
-
+/**
+ */
 int grid_init (grid_t *g, uint32_t d);
 
+/**
+ */
 void grid_free (grid_t *g);
 
+/**
+ */
 int grid_extend (grid_t *g, uint8_t s);
 
+/**
+ * write value V to grid G at <x,y>
+ */
 int grid_write (grid_t *g, uint32_t x, uint32_t y, uint8_t v);
 
+/**
+ * read grid G at <x,y> and return value
+ */
 uint8_t grid_read (grid_t *g, uint32_t x, uint32_t y);
 
 #endif
