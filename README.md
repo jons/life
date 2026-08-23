@@ -35,9 +35,12 @@ the state of the other nearby grid cells: each cell's future is determined by it
 current "neighborhood." the "fitness function" for a fixed location on the grid
 could be wildly different on each iteration.
 
-most initial machine states die (hypothetically and also that's what it looks
-like when i test some out). but those that live, perhaps even grow, would be
-self-editing programs. if they exist.
+most initial machine states die (that's a hypothetical, and, it's also what i'm
+seeing when i test this out). but those that live, perhaps even grow, would be
+self-editing programs. if they exist. and the solution might be as simple as
+working out the right "physical law" for them to thrive in. that's pretty interesting!
+
+all of the following is my hobby attempt at discovering what this "law" might be.
 
 ## Machine Description
 
@@ -60,28 +63,31 @@ program read order is clockwise starting at "top dead center" or "above" the cel
 the reader begins on the row containing this location, and it spirals outward to
 each successive "ring" of cells.
 
-in this illustration and in the rest of this document the current cell is referred to as _x_:
+in this illustration and in the rest of the machine description, the current
+cell is referred to as _x_:
 
 ![program read order](docs/read-order.png)
 
-cell _x_ is encircled by three bytes of code: illustrated here with blue, green,
-and yellow, in that order. the astute reader will note that each ring contains
-exactly one more byte than the last.
+here, cell _x_ is encircled by three bytes of executable code: the blue, green,
+and yellow bytes, in that order. the astute reader will note that, enumerated from
+closest to furthest out, each "ring" around _x_ contains exactly one more byte
+than the previous one.
 
 as in virtually all other game-of-life variations, the current maximum/minimum
-extents of the living cells in the grid define the true boundary of the grid.
+extents of the living cells in the grid define the "true" boundary of the grid.
 
 in _splife_ this also constrains what cells are processed, thus how many
 programs are run for a single generation. for example, you might have a 100x100
 grid which has mostly died off, and only a handful of live cells near the center.
-the highest/lowest row with any live cell, the leftmost/rightmost column with any
-live cell, this dictates the k&#x00D7;k region of cells that will "execute"; dead
-cells outside this region don't get a pass of the fitness function centered on
-them, they cannot live again.
+consider the highest/lowest row with any live cell, the leftmost/rightmost column
+with any live cell: this dictates the k&#x00D7;k region of cells that can
+"execute."
 
-the machine does not have a stack or heap. the grid state is self-evident, and
-it is its own program code, but nothing else. i guess that might be interesting
-to look into, with a bigger word size, but first... read on.
+dead cells outside this region don't get a pass of the fitness function centered
+on them; they cannot live again. this isn't true of the original nor many
+variations thereof.
+
+the machine does not have a stack or heap; no turing-tape.
 
 ## Registers
 
@@ -221,13 +227,14 @@ __how many instructions will be read, and can they be fetched in advance of exec
 
 the fetch cycle stops when it finds a RET, however, the astute reader of this
 document will have noted that either jump instruction could send the fetcher
-beyond a RET that it was otherwise going to read, imminently.
+beyond a RET that it was otherwise, inevitably, on its way towards.
 
 while this is so, the range of values that can be jumped to are constrained, and
-the operand is an immediate constant, not a variable read from the program. so,
-the fetch cycle can be completed prior to the execution of any instruction, for
-any cell. it must terminate. static analysis, if this project had it, could show
-exactly where.
+the operand is an immediate constant, it's not a variable read from the program.
+
+therefore, the fetch cycle can be completed prior to the execution of any
+instruction, for any cell. it must terminate. static analysis, if this project
+had it, could show exactly where.
 
 __why does unconditional JUMP with a range of 0 overlap with RET?__
 
@@ -245,8 +252,10 @@ due to the choices made that define any or all of these instructions.__
 
 me too.
 
-generate a dense grid of size 111 or so, turn on the debugging output, and run it
-for just 4-5 steps. it is plainly visible.
+generate a dense (live) grid of dimension=111 or so, turn on the debugging
+output, and run it for just 4-5 steps. it is plainly visible, broadly speaking
+cells die out along the top and right sides of the grid regardless of the initial
+state.
 
 __you execute a different program for each cell because of the relative positions
 in the machine fetch algorithm. suppose instead you were to find the extents of
