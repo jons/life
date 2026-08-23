@@ -13,6 +13,7 @@
 #include "prog.h"
 #include "compiler.h"
 #include "life.h"
+#include "load.h"
 
 /**
  * check expected equals actual: list_t*
@@ -216,6 +217,154 @@ int main (int argc, char **argv)
     grid_free(&g);
     chk_eq_u32("grid_free: unchanged d", 0, g.d);
     chk_eq_u8p("grid_free: unchanged m", NULL, g.m);
+
+    // TEST: LOAD
+
+    {
+        grid_t l;
+        FILE *fp;
+
+        // the caller knows N (the first row length) and initializes the grid first
+        // write a known 3x3 grid
+        fp = fopen("load-test.txt", "w");
+        assert(fp != NULL);
+        fputs("101\n", fp);
+        fputs("010\n", fp);
+        fputs("111\n", fp);
+        fclose(fp);
+
+        grid_init(&l, 3);
+        rv = load_grid(&l, "load-test.txt");
+        chk_eq_i("load_grid: loads a 3x3 grid", 1, rv);
+        chk_eq_u32("load_grid: dimension", 3, l.d);
+        chk_eq_u8("load_grid: (0,0)", 1, grid_read(&l, 0, 0));
+        chk_eq_u8("load_grid: (1,0)", 0, grid_read(&l, 1, 0));
+        chk_eq_u8("load_grid: (2,0)", 1, grid_read(&l, 2, 0));
+        chk_eq_u8("load_grid: (0,1)", 0, grid_read(&l, 0, 1));
+        chk_eq_u8("load_grid: (1,1)", 1, grid_read(&l, 1, 1));
+        chk_eq_u8("load_grid: (2,1)", 0, grid_read(&l, 2, 1));
+        chk_eq_u8("load_grid: (0,2)", 1, grid_read(&l, 0, 2));
+        chk_eq_u8("load_grid: (2,2)", 1, grid_read(&l, 2, 2));
+        grid_free(&l);
+
+        // single-cell grid without a trailing newline
+        fp = fopen("load-test.txt", "w");
+        assert(fp != NULL);
+        fputs("1", fp);
+        fclose(fp);
+        grid_init(&l, 1);
+        rv = load_grid(&l, "load-test.txt");
+        chk_eq_i("load_grid: single cell without newline", 1, rv);
+        chk_eq_u32("load_grid: single-cell dimension", 1, l.d);
+        chk_eq_u8("load_grid: single cell", 1, grid_read(&l, 0, 0));
+        grid_free(&l);
+
+        // too few rows for the initialized dimension is not square
+        fp = fopen("load-test.txt", "w");
+        assert(fp != NULL);
+        fputs("101\n", fp);
+        fclose(fp);
+        grid_init(&l, 3);
+        rv = load_grid(&l, "load-test.txt");
+        chk_eq_i("load_grid: too few rows rejected", 0, rv);
+        chk_eq_u32("load_grid: failure keeps grid allocated", 3, l.d);
+        chk_ne_u8p("load_grid: failure keeps grid memory", NULL, l.m);
+        grid_free(&l);
+
+        // rows of different lengths are rejected
+        fp = fopen("load-test.txt", "w");
+        assert(fp != NULL);
+        fputs("10\n1\n", fp);
+        fclose(fp);
+        grid_init(&l, 2);
+        rv = load_grid(&l, "load-test.txt");
+        chk_eq_i("load_grid: ragged rows rejected", 0, rv);
+        grid_free(&l);
+
+        // too many rows for the initialized dimension are rejected
+        fp = fopen("load-test.txt", "w");
+        assert(fp != NULL);
+        fputs("10\n01\n11\n", fp);
+        fclose(fp);
+        grid_init(&l, 2);
+        rv = load_grid(&l, "load-test.txt");
+        chk_eq_i("load_grid: too many rows rejected", 0, rv);
+        grid_free(&l);
+
+        // any character other than 0 or 1 is rejected
+        fp = fopen("load-test.txt", "w");
+        assert(fp != NULL);
+        fputs("102\n010\n111\n", fp);
+        fclose(fp);
+        grid_init(&l, 3);
+        rv = load_grid(&l, "load-test.txt");
+        chk_eq_i("load_grid: bad character rejected", 0, rv);
+        grid_free(&l);
+
+        // a blank line inside the grid is rejected
+        fp = fopen("load-test.txt", "w");
+        assert(fp != NULL);
+        fputs("1\n\n1\n", fp);
+        fclose(fp);
+        grid_init(&l, 1);
+        rv = load_grid(&l, "load-test.txt");
+        chk_eq_i("load_grid: interior blank line rejected", 0, rv);
+        grid_free(&l);
+
+        // a missing file is a failure, and the grid is not freed
+        grid_init(&l, 3);
+        rv = load_grid(&l, "no-such-file.txt");
+        chk_eq_i("load_grid: missing file rejected", 0, rv);
+        chk_eq_u32("load_grid: missing file keeps grid allocated", 3, l.d);
+        chk_ne_u8p("load_grid: missing file keeps grid memory", NULL, l.m);
+        grid_free(&l);
+
+        // trailing blank lines are tolerated
+        fp = fopen("load-test.txt", "w");
+        assert(fp != NULL);
+        fputs("1\n\n", fp);
+        fclose(fp);
+        grid_init(&l, 1);
+        rv = load_grid(&l, "load-test.txt");
+        chk_eq_i("load_grid: trailing blank lines tolerated", 1, rv);
+        grid_free(&l);
+
+        // CRLF line endings are tolerated
+        fp = fopen("load-test.txt", "w");
+        assert(fp != NULL);
+        fputs("10\r\n01\r\n", fp);
+        fclose(fp);
+        grid_init(&l, 2);
+        rv = load_grid(&l, "load-test.txt");
+        chk_eq_i("load_grid: CRLF line endings", 1, rv);
+        chk_eq_u32("load_grid: CRLF dimension", 2, l.d);
+        chk_eq_u8("load_grid: CRLF (1,1)", 1, grid_read(&l, 1, 1));
+        grid_free(&l);
+
+        remove("load-test.txt");
+    }
+
+    // TEST: LIFE_IS_DEAD
+
+    // an all-zero grid is dead
+    grid_init(&g, 3);
+    rv = life_is_dead(&g);
+    chk_eq_i("life_is_dead: empty grid", 1, rv);
+
+    // a single live cell is not dead
+    grid_write(&g, 1, 1, 1);
+    rv = life_is_dead(&g);
+    chk_eq_i("life_is_dead: one live cell", 0, rv);
+
+    // dead again once the cell is cleared
+    grid_write(&g, 1, 1, 0);
+    rv = life_is_dead(&g);
+    chk_eq_i("life_is_dead: cleared grid", 1, rv);
+    grid_free(&g);
+
+    // a freed grid is treated as dead
+    rv = life_is_dead(&g);
+    chk_eq_i("life_is_dead: freed grid", 1, rv);
 
     // TEST: PROGRAMS
 

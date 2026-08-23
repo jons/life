@@ -134,7 +134,7 @@ void life_execute (grid_t *next, grid_t *current)
             compiler_init(&c, &e);
             r = compiler_readinfo(&c, current, x, y);
             assert(r);// xxx
-            list(&e);
+            //list(&e);
             r = life_execute_cell(&e, current, x, y);
             v = e.r;
             prog_free(&e);
@@ -142,4 +142,30 @@ void life_execute (grid_t *next, grid_t *current)
             grid_write(next, x, y, v);
         }
     }
+}
+
+/**
+ * 1 if the grid is dead
+ *
+ * a grid with no live cells is dead; dimensionless or freed grids are dead
+ */
+int life_is_dead (grid_t *g)
+{
+    uint32_t x, y, d;
+    uint8_t *m;
+
+    d = g->d;
+    if (0 == d || NULL == g->m)
+        return 1;
+
+    m = g->m;
+    for (y = 0; y < d; y++)
+    {
+        for (x = 0; x < d; x++)
+        {
+            if (m[x + d * y])
+                return 0;
+        }
+    }
+    return 1;
 }

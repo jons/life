@@ -1,2 +1,5 @@
+.vscode
+*.txt
 a.out
 test
+gen

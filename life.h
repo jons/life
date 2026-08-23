@@ -32,4 +32,9 @@ int life_execute_cell (prog_t *p, grid_t *g, uint32_t x, uint32_t y);
  */
 void life_execute (grid_t *next, grid_t *current);
 
+/**
+ * 1 if the grid is dead
+ */
+int life_is_dead(grid_t *g);
+
 #endif

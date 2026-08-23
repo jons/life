@@ -4,17 +4,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include "life.h"
 #include "draw.h"
-
-#define SZ (11)
-#define PSZ (30)
-
-/**
- * the values of the first PSZ primes less than or equal to SZ*SZ (121)
- */
-int p[PSZ] = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113 };
-
+#include "load.h"
 
 /**
  */
@@ -39,49 +32,83 @@ int wait()
 
 
 /**
+ * length of the first row of the text file at PATH
+ * the loader does not size the grid, so the caller reads N from here first
+ * returns -1 on failure
+ */
+uint32_t first_row_length (const char *path)
+{
+    FILE *f;
+    uint32_t n = 0;
+    int c;
+
+    f = fopen(path, "r");
+    if (NULL == f)
+        return -1;
+
+    for (;;)
+    {
+        c = fgetc(f);
+        if ('\n' == c || '\r' == c || EOF == c)
+            break;
+        n++;
+    }
+    fclose(f);
+    return n;
+}
+
+/**
  */
 int main (int argc, char **argv)
 {
-    int x, y, i = 0, k;
+    uint32_t n;
+    int i = 0;
     grid_t a, b, *v, *w;
 
-    grid_init(&a, SZ);
-    grid_init(&b, SZ);
-
-    // LIVE! LIVE, DAMN YOU
-    for (x = 0; x < SZ; x++)
+    if (argc < 2)
     {
-        for (y = 0; y < SZ; y++)
-        {
-            /*k = x * SZ + y;
-            if (p[i] == k)
-            {
-                grid_write(&a, x, y, 1);
-                i++;
-                if (i == PSZ) i = 0;
-            }*/
+        fprintf(stderr, "usage: %s grid.txt\n", argv[0]);
+        return 1;
+    }
 
-            if (x == 3 && y == 3)
-            {
-                grid_write(&a, x, y, 1);
-            }
-        }
+    // the caller knows N, the length of the first row, and initializes first
+    n = first_row_length(argv[1]);
+    if (n == 0)
+    {
+        fprintf(stderr, "splife: no grid in %s\n", argv[1]);
+        return 1;
+    }
+
+    grid_init(&a, n);
+    grid_init(&b, n);
+
+    if (!load_grid(&a, argv[1]))
+    {
+        fprintf(stderr, "splife: could not load grid from %s\n", argv[1]);
+        grid_free(&a);
+        grid_free(&b);
+        return 1;
     }
 
     v = &a;
     w = &b;
-    x = 0;
-
     for (;;) {
-        draw(v);
-        //
-        if (wait()) break;
-        //
+        if (life_is_dead(v))
+        {
+            printf("died on step %d\n", i);
+            break;
+        }
+        // user i/o
+        //draw(v);
+        //printf("%d\n", i);
+        //if (wait()) break;
+        // w <- v
         life_execute(w, v);
 
         // flip-flop next/current grid on each pass
-        if (x) { v = &a; w = &b; x = 0; }
-        else   { v = &b; w = &a; x = 1; }
+        if (i & 1) { v = &a; w = &b; }
+        else       { v = &b; w = &a; }
+        i++;
     }
 
     grid_free(&a);
